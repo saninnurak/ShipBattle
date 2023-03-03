@@ -1,11 +1,14 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .serializers import StatusSerializer
+
 
 
 class StatusView(APIView):
     def get(self, request):
-        return Response({"status":"ok"})
+        serializer = StatusSerializer({'status':'ok'})
+        return Response(serializer.data)
 
 class BattleView(APIView):
     def get(self, request):
