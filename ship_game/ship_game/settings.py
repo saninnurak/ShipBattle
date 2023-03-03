@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     #django rest framework
     "rest_framework",
+    "drf_yasg",
     #local
     'game_app',
 ]
