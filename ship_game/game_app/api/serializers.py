@@ -28,10 +28,9 @@ class ShipSerializer(serializers.ModelSerializer):
 
 
 class BattleSerializer(serializers.Serializer):
-    attacker = ShipSerializer()
-    defender = ShipSerializer()
-    winner = serializers.CharField()
-    loser = serializers.CharField()
+    winner = ShipSerializer()
+    loser = ShipSerializer()
+
 
 
 class ErrorSerializer(serializers.Serializer):

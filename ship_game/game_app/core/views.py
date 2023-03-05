@@ -13,6 +13,37 @@ from rest_framework import status
 logger = logging.getLogger(__name__)
 
 class ShipBattleView(APIView):
+
+    @staticmethod
+    def create_and_get_ship_ids(ships: list[int]):
+        ship_ids = []
+        for soldier_count in ships:
+            num_soldiers = soldier_count
+            seasickness_soldiers = random.randint(0, num_soldiers)
+            death_soldiers = 0
+            eligible_soldiers = num_soldiers - seasickness_soldiers - death_soldiers
+
+            ship = Ship.objects.create(
+                name=f"Ship {str(uuid.uuid4())[:6]}",
+                num_soldiers=num_soldiers,
+                seasickness_soldiers=seasickness_soldiers,
+                eligible_soldiers=eligible_soldiers,
+                death_soldiers=death_soldiers,
+                destroyed=False,
+            )
+            ship_ids.append(ship.id)
+        return ship_ids
+
+    @staticmethod
+    def get_random_attacker_defender(ship_ids: list[int]):
+        attacker_id = random.choice(ship_ids)
+        defender_id = random.choice(ship_ids)
+        while attacker_id == defender_id:
+            defender_id = random.choice(ship_ids)
+
+        ships = Ship.objects.filter(id__in=[attacker_id, defender_id])
+        return ships.first(), ships.last()
+
     @swagger_auto_schema(responses={status.HTTP_200_OK: BattleSerializer, status.HTTP_400_BAD_REQUEST: ErrorSerializer},
                          query_serializer=ShipQuerySerializer, )
     def get(self, request):
@@ -24,80 +55,64 @@ class ShipBattleView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         logger.debug(f"ships: {ships}")
+        ship_ids = self.create_and_get_ship_ids(ships)
 
-        ship_ids = []
-        for soldier_count in ships:
-            num_soldiers = soldier_count
-            seasickness_soldiers = random.randint(0, num_soldiers)
-            eligible_soldiers = num_soldiers - seasickness_soldiers
-
-            ship = Ship.objects.create(
-                name=f"Ship {str(uuid.uuid4())[:6]}",
-                num_soldiers=num_soldiers,
-                seasickness_soldiers=seasickness_soldiers,
-                eligible_soldiers=eligible_soldiers,
-            )
-            ship_ids.append(ship.id)
 
         response = []
         while Ship.objects.filter(id__in=ship_ids, destroyed=False).count() > 1:
-            attacker_id = random.choice(ship_ids)
-            defender_id = random.choice(ship_ids)
-            while attacker_id == defender_id:
-                defender_id = random.choice(ship_ids)
+            attacker, defender = self.get_random_attacker_defender(ship_ids)
 
-            attacker = Ship.objects.get(id=attacker_id)
-            defender = Ship.objects.get(id=defender_id)
             while attacker.eligible_soldiers > 0 and defender.eligible_soldiers > 0:
-                attacker.death_soldiers = random.randint(0, attacker.eligible_soldiers)
-                attacker.eligible_soldiers = attacker.eligible_soldiers - attacker.death_soldiers
-                attacker.save(update_fields=["eligible_soldiers", "death_soldiers"])
-                attacker.refresh_from_db()
+                attacker.eligible_soldiers -= random.randint(0,attacker.eligible_soldiers)
+                defender.eligible_soldiers -= random.randint(0, defender.eligible_soldiers)
 
-                defender.death_soldiers = random.randint(0, defender.eligible_soldiers)
-                defender.eligible_soldiers = defender.eligible_soldiers - defender.death_soldiers
-                defender.save(update_fields=["eligible_soldiers", "death_soldiers"])
-                defender.refresh_from_db()
+            attacker.death_soldiers = (
+                                              attacker.num_soldiers - attacker.seasickness_soldiers
+                                      ) - attacker.eligible_soldiers
 
-            if defender.eligible_soldiers == 0:
-                winner = attacker
-                loser = defender
-                defender.destroyed = True
-                defender.save(update_fields=["destroyed"])
-                ship_ids.remove(defender_id)
-            else:
-                winner = defender
-                loser = attacker
-                attacker.destroyed = True
-                attacker.save(update_fields=["destroyed"])
-                ship_ids.remove(attacker_id)
+            defender.death_soldiers = (
+                                              defender.num_soldiers - defender.seasickness_soldiers
+                                      ) - defender.eligible_soldiers
 
-            battle = Battle.objects.create(attacker=attacker, defender=defender)
-            BattleResult(battle=battle, winner=winner, loser=loser).save()
+            attacker.save()
+            defender.save()
 
             attacker.refresh_from_db()
             defender.refresh_from_db()
 
+            assert (
+                    attacker.num_soldiers
+                    == attacker.eligible_soldiers + attacker.seasickness_soldiers + attacker.death_soldiers
+            )
+
+            winner = attacker if defender.eligible_soldiers == 0 else defender
+            loser = defender if attacker.eligible_soldiers == 0 else attacker
+
+            loser.destroyed = True
+            loser.save()
+            ship_ids.remove(loser.id)
+
+            battle = Battle.objects.create(attacker=attacker, defender=defender)
+            BattleResult(battle=battle, winner=winner, loser=loser).save()
+
             response.append(
                 {
-                    "attacker": {
-                        "name": attacker.name,
-                        "num_soldiers": attacker.num_soldiers,
-                        "eligible_soldiers": attacker.eligible_soldiers,
-                        "seasickness_soldiers": attacker.seasickness_soldiers,
-                        "death_soldiers": attacker.death_soldiers,
-                        "destroyed": attacker.destroyed,
+                    "winner": {
+                        "name": winner.name,
+                        "num_soldiers": winner.num_soldiers,
+                        "eligible_soldiers": winner.eligible_soldiers,
+                        "seasickness_soldiers": winner.seasickness_soldiers,
+                        "death_soldiers": winner.death_soldiers,
+                        "destroyed": winner.destroyed,
                     },
-                    "defender": {
-                        "name": defender.name,
-                        "num_soldiers": defender.num_soldiers,
-                        "eligible_soldiers": defender.eligible_soldiers,
-                        "seasickness_soldiers": defender.seasickness_soldiers,
-                        "death_soldiers": defender.death_soldiers,
-                        "destroyed": defender.destroyed,
+                    "loser": {
+                        "name": loser.name,
+                        "num_soldiers": loser.num_soldiers,
+                        "eligible_soldiers": loser.eligible_soldiers,
+                        "seasickness_soldiers": loser.seasickness_soldiers,
+                        "death_soldiers": loser.death_soldiers,
+                        "destroyed": loser.destroyed,
                     },
-                    "winner": winner.name,
-                    "loser": loser.name,
                 }
             )
 
