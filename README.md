@@ -6,7 +6,7 @@
     djangorestframework==3.12.0
     pytz==2022.7.1
     drf-yasg==1.21.5
-    python-decouple==3.3
+    
 
     pytest==7.2.0
     pytest-cov==4.0.0
