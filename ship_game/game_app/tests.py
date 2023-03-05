@@ -8,7 +8,7 @@ class StatusTestCase(TestCase):
         self.client = APIClient()
 
     def test_status(self):
-        response = self.client.get(('/api/status'))
+        response = self.client.get('/api/status/')
 
         self.assertEqual(response.status_code,status.HTTP_200_OK)
         self.assertEqual(response.data,{'status':'ok'})

@@ -1,7 +1,8 @@
 from django.urls import path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-from game_app.api.views import ShipBattleView, StatusView
+from game_app.api.views import StatusView
+from game_app.core.views import ShipBattleView
 from rest_framework import permissions
 
 schema_view = get_schema_view(
