@@ -1,8 +1,7 @@
 from django.urls import path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-from .views import BattleView,StatusView
-StatusView
+from game_app.api.views import ShipBattleView, StatusView
 from rest_framework import permissions
 
 schema_view = get_schema_view(
@@ -22,8 +21,8 @@ schema_view = get_schema_view(
 
 
 urlpatterns = [
-    path('battle/',BattleView.as_view(),name="battle"),
-    path('status/',BattleView.as_view(),name="status"),
+    path('battle/',ShipBattleView.as_view(),name="battle"),
+    path('status/',StatusView.as_view(),name="status"),
     re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
     re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
     re_path(r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
