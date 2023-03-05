@@ -25,6 +25,7 @@ class ShipBattleViewTestCase(TestCase):
         first_result = response.json()[0]
         second_result = response.json()[1]
 
+
         self.assertEqual(
             first_result["winner"]["num_soldiers"],
             first_result["winner"]["eligible_soldiers"]

@@ -38,6 +38,7 @@ class ShipBattleView(APIView):
     def get_random_attacker_defender(ship_ids: list[int]):
         attacker_id = random.choice(ship_ids)
         defender_id = random.choice(ship_ids)
+
         while attacker_id == defender_id:
             defender_id = random.choice(ship_ids)
 
@@ -85,8 +86,13 @@ class ShipBattleView(APIView):
                     == attacker.eligible_soldiers + attacker.seasickness_soldiers + attacker.death_soldiers
             )
 
-            winner = attacker if defender.eligible_soldiers == 0 else defender
-            loser = defender if attacker.eligible_soldiers == 0 else attacker
+            if defender.eligible_soldiers == 0:
+                winner = attacker
+                loser = defender
+            else:
+                winner = defender
+                loser = attacker
+
 
             loser.destroyed = True
             loser.save()
