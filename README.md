@@ -1,16 +1,7 @@
 # BattleShip
 
-#create venv and install dependecies:
-
-    Django==4.1
-    djangorestframework==3.12.0
-    pytz==2022.7.1
-    drf-yasg==1.21.5
-    
-
-    pytest==7.2.0
-    pytest-cov==4.0.0
-
+#Create venv and install dependecies:</br>
+    pip install -r requirments.txt</br>
 #Run migrations : </br>
     python manage.py makemigrations </br>
     python manage.py migrate </br>
